@@ -1,26 +1,36 @@
 import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ThemeProvider } from '@mui/material/styles';
+import { createTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import MainLayout from './components/Layout/MainLayout';
+import Dashboard from './pages/Dashboard';
+import { OpenOrders } from './pages/Dashboard/OpenOrders';
+import { CacheProvider } from './context/CacheContext';
+
+const theme = createTheme();
 
 function App() {
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <CacheProvider>
+        <Router>
+          <MainLayout>
+            <Routes>
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dashboard/openorders" element={<OpenOrders />} />
+              <Route path="/users" element={<div>Users Page</div>} />
+              <Route path="/products" element={<div>Products Page</div>} />
+              <Route path="/tasks" element={<div>Tasks Page</div>} />
+              <Route path="/designs" element={<div>Designs Page</div>} />
+            </Routes>
+          </MainLayout>
+        </Router>
+      </CacheProvider>
+    </ThemeProvider>
   );
 }
 
-export default App;
+export default App; 
