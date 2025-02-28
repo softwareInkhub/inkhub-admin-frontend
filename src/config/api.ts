@@ -8,6 +8,7 @@ export const endpoints = {
   tasks: `${API_URL}/api/tasks`,
   users: `${API_URL}/api/firebase/users`,
   firebaseOrders: `${API_URL}/api/firebase/shopify-orders`,
+  firebaseAllOrders: `${API_URL}/api/firebase/shopify-orders/all`
 };
 
 export const apiService = {

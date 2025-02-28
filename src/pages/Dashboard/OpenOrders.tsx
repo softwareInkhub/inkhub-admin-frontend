@@ -22,7 +22,6 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import { cachedApiService } from '../../services/api/CachedApiService';
-import LoadingButton from '@mui/lab/LoadingButton';
 import SyncIcon from '@mui/icons-material/Sync';
 import CloudSyncIcon from '@mui/icons-material/CloudSync';
 
@@ -45,7 +44,7 @@ interface FirebaseOrder {
   };
 }
 
-export const OpenOrders: React.FC = () => {
+const OpenOrders: React.FC = () => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +52,7 @@ export const OpenOrders: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
   const [isSyncingAll, setIsSyncingAll] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   const columns: GridColDef<FirebaseOrder>[] = [
     { 
@@ -120,22 +120,39 @@ export const OpenOrders: React.FC = () => {
     }
   ];
 
+  const fetchAllOrders = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      console.log('Fetching all orders...');
+      const response = await cachedApiService.getAllFirebaseOrders();
+      
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to fetch orders');
+      }
+      
+      if (!response.orders || response.orders.length === 0) {
+        console.log('No orders found, initiating sync...');
+        await handleSyncAll();
+        return;
+      }
+
+      console.log('Orders fetched successfully:', {
+        count: response.orders.length
+      });
+      setData(response);
+    } catch (err) {
+      console.error('Error fetching orders:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch orders');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Fetch all orders at once
   useEffect(() => {
-    const fetchAllOrders = async () => {
-      try {
-        setLoading(true);
-        const response = await cachedApiService.getAllFirebaseOrders();
-        setData(response);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch orders');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchAllOrders();
-  }, []);
+  }, [retryCount]);
 
   // Filter orders based on search term
   const filteredOrders = useMemo(() => {
@@ -158,9 +175,9 @@ export const OpenOrders: React.FC = () => {
   const handleSync = async () => {
     try {
       setIsSyncing(true);
+      setError(null);
       await cachedApiService.syncOrders();
-      const response = await cachedApiService.getAllFirebaseOrders();
-      setData(response);
+      await fetchAllOrders();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sync orders');
     } finally {
@@ -171,9 +188,9 @@ export const OpenOrders: React.FC = () => {
   const handleSyncAll = async () => {
     try {
       setIsSyncingAll(true);
+      setError(null);
       await cachedApiService.syncAllOrders();
-      const response = await cachedApiService.getAllFirebaseOrders();
-      setData(response);
+      await fetchAllOrders();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to sync all orders');
     } finally {
@@ -181,9 +198,13 @@ export const OpenOrders: React.FC = () => {
     }
   };
 
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1);
+  };
+
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" p={4}>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
         <CircularProgress />
       </Box>
     );
@@ -192,7 +213,39 @@ export const OpenOrders: React.FC = () => {
   if (error) {
     return (
       <Box p={2}>
-        <Alert severity="error">{error}</Alert>
+        <Alert 
+          severity="error" 
+          action={
+            <Button color="inherit" size="small" onClick={handleRetry}>
+              Retry
+            </Button>
+          }
+        >
+          {error}
+        </Alert>
+      </Box>
+    );
+  }
+
+  if (!data?.orders || data.orders.length === 0) {
+    return (
+      <Box p={2}>
+        <Alert 
+          severity="info"
+          action={
+            <Button
+              disabled={isSyncingAll}
+              onClick={handleSyncAll}
+              variant="outlined"
+              size="small"
+              startIcon={isSyncingAll ? <CircularProgress size={20} /> : undefined}
+            >
+              Sync Orders
+            </Button>
+          }
+        >
+          No orders found. Try syncing orders from Shopify.
+        </Alert>
       </Box>
     );
   }
@@ -205,22 +258,22 @@ export const OpenOrders: React.FC = () => {
             Orders ({filteredOrders.length})
           </Typography>
           <Button
-            disabled={isSyncing}
-            startIcon={<SyncIcon />}
+            disabled={isSyncing || isSyncingAll}
+            startIcon={isSyncing ? <CircularProgress size={20} /> : <SyncIcon />}
             variant="contained"
             onClick={handleSync}
             size="small"
           >
-            {isSyncing ? 'Syncing...' : 'Sync Recent'}
+            Sync Recent
           </Button>
           <Button
-            disabled={isSyncingAll}
-            startIcon={<CloudSyncIcon />}
+            disabled={isSyncing || isSyncingAll}
+            startIcon={isSyncingAll ? <CircularProgress size={20} /> : <CloudSyncIcon />}
             variant="contained"
             onClick={handleSyncAll}
             size="small"
           >
-            {isSyncingAll ? 'Syncing...' : 'Sync All'}
+            Sync All
           </Button>
         </Stack>
         
@@ -284,4 +337,6 @@ export const OpenOrders: React.FC = () => {
       </Dialog>
     </Box>
   );
-}; 
+};
+
+export default OpenOrders; 

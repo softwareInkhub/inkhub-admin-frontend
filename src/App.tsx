@@ -5,7 +5,7 @@ import { createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import MainLayout from './components/Layout/MainLayout';
 import Dashboard from './pages/Dashboard';
-import { OpenOrders } from './pages/Dashboard/OpenOrders';
+import OpenOrders from './pages/Dashboard/OpenOrders';
 import { CacheProvider } from './context/CacheContext';
 
 const theme = createTheme();

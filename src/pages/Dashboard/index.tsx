@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { useLocation } from 'react-router-dom';
-import { OpenOrders } from './OpenOrders';
+import OpenOrders from './OpenOrders';
 
 const Dashboard = () => {
   const location = useLocation();
